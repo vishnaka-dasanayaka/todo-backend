@@ -1,0 +1,76 @@
+name: Docker Image Build and Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-southeast-1
+  IMAGE_NAME: todo
+  IMAGE_TAG: latest
+  BUILD_FOLDER_NAME: todo-backend
+  CONTAINER_NAME: todo-container
+  REPO_NAME: todo-backend.git
+  REPO_BRANCH: main
+  HEALTH_CHECK_URL: http://${{ secrets.AWS_HOSTNAME }}:8081/swagger-ui/index.html#/
+
+jobs:
+  build-run-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build and Run Image on Instance
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.AWS_HOSTNAME }}
+          username: ${{ secrets.AWS_USERNAME }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          port: 22
+          script: |
+            if grep -q "github.com" ~/.ssh/known_hosts; then
+              echo "github.com host already added"
+            else
+              ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+            fi
+            rm -rf /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
+            mkdir /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
+
+            git clone -b ${{ env.REPO_BRANCH }} --single-branch https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/Findout-org/${{ env.REPO_NAME }} /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
+
+            cd /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
+            mvn clean package -DskipTests
+
+            # sudo docker system prune -a
+            sudo docker rm -f container-name
+            sudo docker rmi ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            sudo docker build -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+            sudo docker run -d --name container-name -p 8081:8081 ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+  health-check:
+    needs: build-run-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Application Health
+        run: |
+          retries=4
+          wait_time=15
+          total_wait_time=$((retries * wait_time))
+
+          while [ $retries -gt 0 ]; do
+            if curl -f ${{ env.HEALTH_CHECK_URL }}; then
+              echo "✅ Application Health check is successful!"
+              break
+            else
+              retries=$((retries - 1))
+              if [ $retries -eq 0 ]; then
+                echo "❌ Health check failed after ${total_wait_time} seconds."
+                exit 1
+              fi
+              echo "⏳ Health check failed. Retrying in ${wait_time} seconds..."
+              sleep $wait_time
+            fi
+
+          done
