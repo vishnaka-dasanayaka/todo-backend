@@ -1,17 +1,16 @@
 package com.todo.webapp.dto;
 
-import lombok.*;
-
-import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TaskDto {
+public class TaskUpdateInputDto {
     private Long id;
     private String title;
     private String description;
-    private LocalDateTime createdAt;
-    private Boolean completed;
 }

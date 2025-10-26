@@ -4,12 +4,10 @@ import com.auth0.jwk.*;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.auth0.jwt.interfaces.JWTVerifier;
 import com.todo.webapp.entity.User;
 import com.todo.webapp.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -81,29 +79,16 @@ public class JwtInterceptor implements HandlerInterceptor {
 
 
             // Extract claims
-            String email = (verifiedJwt.getClaim("email").asString());
+            String sub = (verifiedJwt.getClaim("username").asString());
 
 
-            if (email == null) {
+            if (sub == null) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return false;
             }
 
-            // Split name into first and last (fallbacks if not available)
-//            String firstname = name != null ? name.split(" ")[0] : "Unknown";
-//            String lastname = (name != null && name.split(" ").length > 1) ? name.split(" ")[1] : "";
-
-            // Insert if not exist
-            Optional<User> existingUser = userRepository.findByEmail(email);
-            User user = existingUser.orElseGet(() -> {
-                User newUser = new User();
-                newUser.setEmail(email);
-                newUser.setFirstname("firstname");
-                newUser.setLastname("lastname");
-                return userRepository.save(newUser);
-            });
-
-            authenticatedUser.set(user);
+            Optional<User> existingUser = userRepository.findByCognitoSub(sub);
+            authenticatedUser.set(existingUser.get());
             return true;
 
         } catch (Exception e) {

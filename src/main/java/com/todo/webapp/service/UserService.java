@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 public class UserService {
     private final UserRepository userRepository;
 
+
     public UserDto createUser(UserDto dto){
         User user = User.builder()
                 .email(dto.getEmail())
@@ -23,7 +24,6 @@ public class UserService {
         return toDto(saved);
     }
 
-
     private UserDto toDto(User user){
         return UserDto.builder()
                 .id(user.getId())
@@ -32,4 +32,6 @@ public class UserService {
                 .lastname(user.getLastname())
                 .build();
     }
+
+
 }

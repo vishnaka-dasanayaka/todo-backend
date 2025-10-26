@@ -1,9 +1,12 @@
 package com.todo.webapp.service;
 
+import com.todo.webapp.dto.UserResponseDto;
 import com.todo.webapp.entity.User;
 import com.todo.webapp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserResponse;
@@ -20,29 +23,26 @@ public class AuthenticationService {
     private CognitoIdentityProviderClient cognitoIdentityProviderClient;
 
 
-    public String addNewUser(String token) {
+    public UserResponseDto addNewUser(String token) {
         GetUserResponse getUserResponse = getUserDetails(token);
 
-        String givenName = getAttribute(getUserResponse, "given_name");
-        String familyName = getAttribute(getUserResponse, "family_name");
-        String phoneNumber = getAttribute(getUserResponse, "phone_number");
-        String role = getAttribute(getUserResponse, "custom:role");
         String email = getAttribute(getUserResponse, "email");
-        String cognitoSub = getAttribute(getUserResponse,"username");
+        String cognitoSub = getAttribute(getUserResponse,"sub");
+        String firstName = getAttribute(getUserResponse,"given_name");
+        String lastName = getAttribute(getUserResponse,"family_name");
 
-
-
-
-        Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
+        if (userRepository.existsByEmail(email)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User already exists");
+        }
 
         User newUser = new User(
                 email,
-                "familyName",
-                "lastname",
+                firstName,
+                lastName,
                 cognitoSub);
 
-        userRepository.createUser(newUser);
-        return getUserResponse.username();
+        userRepository.save(newUser);
+        return new UserResponseDto(true,getUserResponse.username());
     }
 
     private GetUserResponse getUserDetails(String accessToken) {
