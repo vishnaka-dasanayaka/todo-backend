@@ -10,9 +10,9 @@ import java.util.List;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    // Fetch only the 5 most recent pending tasks of a specific user
     List<Task> findTop5ByUserAndStatusOrderByCreatedAtDesc(User user, Task.Status status);
 
-    // Optional: fetch all active (non-completed) tasks
-    List<Task> findByUserAndStatusNot(User user, Task.Status status);
+    Long countByUserAndStatusNot(User user, Task.Status status);
+
+    Long countByUserAndStatus(User user, Task.Status status);
 }

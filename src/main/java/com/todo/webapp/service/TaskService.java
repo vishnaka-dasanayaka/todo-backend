@@ -1,6 +1,9 @@
 package com.todo.webapp.service;
 
+import com.todo.webapp.dto.DashboardDataDto;
 import com.todo.webapp.dto.TaskDto;
+import com.todo.webapp.dto.TaskInputDto;
+import com.todo.webapp.dto.TaskUpdateInputDto;
 import com.todo.webapp.entity.Task;
 import com.todo.webapp.entity.User;
 import com.todo.webapp.repository.TaskRepository;
@@ -19,10 +22,9 @@ import java.util.stream.Collectors;
 public class TaskService {
     private final TaskRepository taskRepository;
 
-    public TaskDto createTask(TaskDto dto){
+    public TaskDto createTask(TaskInputDto dto){
 
         User currentUser = AuthenticatedUserContext.getCurrentUser();
-
 
         Task task = Task.builder()
                 .title(dto.getTitle())
@@ -45,17 +47,60 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
-    public void markTaskAsCompleted(Long id) {
+    public void markTaskAsCompleted(Long id, String status) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
-        task.setStatus(Task.Status.COMPLETED);
-        taskRepository.save(task);
+
+        try {
+            Task.Status taskStatus = Task.Status.valueOf(status.toUpperCase());
+            task.setStatus(taskStatus);
+            taskRepository.save(task);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid status value: " + status);
+        }
+    }
+
+
+
+    public TaskDto updateTask(TaskUpdateInputDto taskDto) {
+        Task task = taskRepository.findById(taskDto.getId())
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        try {
+            task.setTitle(taskDto.getTitle());
+            task.setDescription(taskDto.getDescription());
+            taskRepository.save(task);
+            return toDto(task);
+
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid inputs");
+        }
     }
 
     private TaskDto toDto(Task task) {
         return TaskDto.builder()
+                .id(task.getId())
                 .title(task.getTitle())
                 .description(task.getDescription())
+                .createdAt(task.getCreatedAt())
+                .completed(task.getStatus() == Task.Status.COMPLETED )
                 .build();
+    }
+
+    public DashboardDataDto getDashboardData() {
+        User currentUser = AuthenticatedUserContext.getCurrentUser();
+
+        Long totalTasks = taskRepository.countByUserAndStatusNot(currentUser, Task.Status.DELETED);
+        Long pendingTasks = taskRepository.countByUserAndStatus(currentUser, Task.Status.PENDING);
+        Long completedTasks = taskRepository.countByUserAndStatus(currentUser, Task.Status.COMPLETED);
+
+        return new DashboardDataDto(
+                currentUser.getFirstname() + " " + currentUser.getLastname(),
+                currentUser.getEmail(),
+                totalTasks,
+                pendingTasks,
+                completedTasks
+        );
+
     }
 }
