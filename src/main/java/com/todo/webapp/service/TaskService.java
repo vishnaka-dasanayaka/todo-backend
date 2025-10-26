@@ -60,8 +60,6 @@ public class TaskService {
         }
     }
 
-
-
     public TaskDto updateTask(TaskUpdateInputDto taskDto) {
         Task task = taskRepository.findById(taskDto.getId())
                 .orElseThrow(() -> new RuntimeException("Task not found"));
