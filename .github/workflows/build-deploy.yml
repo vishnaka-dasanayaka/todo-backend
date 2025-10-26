@@ -38,7 +38,7 @@ jobs:
             rm -rf /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
             mkdir /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
 
-            git clone -b ${{ env.REPO_BRANCH }} --single-branch https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/Findout-org/${{ env.REPO_NAME }} /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
+            git clone -b ${{ env.REPO_BRANCH }} --single-branch https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/vishnaka-dasanayaka/${{ env.REPO_NAME }} /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
 
             cd /home/ubuntu/${{ env.BUILD_FOLDER_NAME }}
             mvn clean package -DskipTests
