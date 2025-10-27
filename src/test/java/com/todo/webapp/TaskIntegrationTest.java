@@ -105,7 +105,6 @@ class TaskIntegrationTest {
 
     @Test
     void getRecentPendingTasks_integrationTest() throws Exception {
-        // Arrange: create a user
         User user = userRepository.save(User.builder()
                 .firstname("John")
                 .lastname("Doe")
@@ -113,7 +112,6 @@ class TaskIntegrationTest {
                 .cognitoSub("cog_sub")
                 .build());
 
-        // Add tasks
         for (int i = 1; i <= 6; i++) {
             taskRepository.save(Task.builder()
                     .title("Task " + i)
@@ -124,18 +122,15 @@ class TaskIntegrationTest {
                     .build());
         }
 
-        // Mock AuthenticatedUserContext
         Mockito.mockStatic(AuthenticatedUserContext.class)
                 .when(AuthenticatedUserContext::getCurrentUser)
                 .thenReturn(user);
 
-        // Act & Assert
         mockMvc.perform(get("/api/tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(5)) // top 5
                 .andExpect(jsonPath("$[0].title").value("Task 6")); // most recent first
     }
-
 
 
 }
